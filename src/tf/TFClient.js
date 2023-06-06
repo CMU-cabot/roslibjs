@@ -3,8 +3,7 @@
  * @author David Gossow - dgossow@willowgarage.com
  */
 
-var ActionClient = require('../actionlib/ActionClient');
-var Goal = require('../actionlib/Goal');
+var Actions = require('../ros2action');
 
 var Service = require('../core/Service.js');
 var ServiceRequest = require('../core/ServiceRequest.js');
@@ -54,12 +53,10 @@ function TFClient(options) {
   this._isDisposed = false;
 
   // Create an Action Client
-  this.actionClient = new ActionClient({
-    ros : options.ros,
-    serverName : this.serverName,
-    actionName : 'tf2_web_republisher/TFSubscriptionAction',
-    omitStatus : true,
-    omitResult : true
+  this.actionClient = new Actions.ActionHandle({
+    ros: ros,
+    name : this.serverName,
+    actionType : 'tf2_web_republisher/action/TFSubscription',
   });
 
   // Create a Service Client
@@ -116,7 +113,7 @@ TFClient.prototype.updateGoal = function() {
     if (this.currentGoal) {
       this.currentGoal.cancel();
     }
-    this.currentGoal = new Goal({
+    this.currentGoal = new Actions.ActionGoal({
       actionClient : this.actionClient,
       goalMessage : goalMessage
     });
