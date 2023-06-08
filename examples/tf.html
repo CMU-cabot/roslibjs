@@ -12,7 +12,7 @@
     // set this to false to use the new service interface to
     // tf2_web_republisher. true is the default and means roslibjs
     // will use the action interface
-    groovyCompatibility : true
+    groovyCompatibility : false
   });
 
   // If there is an error on the backend, an 'error' emit will be emitted.
@@ -41,20 +41,20 @@
   });
 
   // Create a connection to the rosbridge WebSocket server.
-  ros.connect('ws://localhost:9090');
+  ros.connect('ws://localhost:9091');
 
   // TF Client
   // ---------
   var tfClient = new ROSLIB.TFClient({
     ros : ros,
-    fixedFrame : 'world',
+    fixedFrame : 'map',
     angularThres : 0.01,
     transThres : 0.01
   });
 
   // Subscribe to a turtle.
-  tfClient.subscribe('turtle1', function(tf) {
-    console.log(tf);
+  tfClient.subscribe('base_link', function(tf) {
+    console.log(tf.translation)
   });
 </script>
 </head>
