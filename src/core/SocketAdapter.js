@@ -48,7 +48,9 @@ function SocketAdapter(client) {
 
   function handlePng(message, callback) {
     if (message.op === 'png') {
-      decompressPng(message.data, callback);
+      decompressPng(message.data, callback, 'json');
+    } else if (message.op === 'png-cbor') {
+      decompressPng(message.data, callback, 'cbor');
     } else {
       callback(message);
     }

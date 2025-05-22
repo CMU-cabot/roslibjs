@@ -39,7 +39,7 @@ function Topic(options) {
   this.reconnect_on_close = options.reconnect_on_close !== undefined ? options.reconnect_on_close : true;
 
   // Check for valid compression types
-  if (this.compression && this.compression !== 'png' &&
+  if (this.compression && this.compression !== 'png' && this.compression !== 'png-cbor' &&
     this.compression !== 'cbor' && this.compression !== 'cbor-raw' &&
     this.compression !== 'none') {
     this.emit('warning', this.compression +

@@ -4334,7 +4334,9 @@ function SocketAdapter(client) {
 
   function handlePng(message, callback) {
     if (message.op === 'png') {
-      decompressPng(message.data, callback);
+      decompressPng(message.data, callback, 'json');
+    } else if (message.op === 'png-cbor') {
+      decompressPng(message.data, callback, 'cbor');
     } else {
       callback(message);
     }
@@ -4457,7 +4459,7 @@ function Topic(options) {
   this.reconnect_on_close = options.reconnect_on_close !== undefined ? options.reconnect_on_close : true;
 
   // Check for valid compression types
-  if (this.compression && this.compression !== 'png' &&
+  if (this.compression && this.compression !== 'png' && this.compression !== 'png-cbor' &&
     this.compression !== 'cbor' && this.compression !== 'cbor-raw' &&
     this.compression !== 'none') {
     this.emit('warning', this.compression +
@@ -5891,6 +5893,8 @@ module.exports = function Canvas() {
 'use strict';
 
 var Canvas = require('canvas');
+var CBOR = require('cbor-js');
+var typedArrayTagger = require('../cborTypedArrayTags');
 var Image = Canvas.Image || window.Image;
 
 /**
@@ -5903,7 +5907,7 @@ var Image = Canvas.Image || window.Image;
  * @param callback - Function with the following params:
  * @param callback.data - The uncompressed data.
  */
-function decompressPng(data, callback) {
+function decompressPng(data, callback, type) {
   // Uncompresses the data before sending it through (use image/canvas to do so).
   var image = new Image();
   // When the image loads, extracts the raw data (JSON message).
@@ -5926,13 +5930,43 @@ function decompressPng(data, callback) {
     // Grabs the raw, uncompressed data.
     var imageData = context.getImageData(0, 0, image.width, image.height).data;
 
-    // Constructs the JSON.
-    var jsonData = '';
-    for (var i = 0; i < imageData.length; i += 4) {
-      // RGB
-      jsonData += String.fromCharCode(imageData[i], imageData[i + 1], imageData[i + 2]);
+    if (type == 'json') {
+      // Constructs the JSON.
+      var jsonData = '';
+      for (var i = 0; i < imageData.length; i += 4) {
+        // RGB
+        jsonData += String.fromCharCode(imageData[i], imageData[i + 1], imageData[i + 2]);
+      }
+      callback(JSON.parse(jsonData));
+    } else if (type == 'cbor') {
+      var i = imageData.length - 1;
+      for (; ; i--) {
+        if ((i % 4) == 3) continue;
+        if (imageData[i] == 10) continue; // \n
+        if (imageData[i] == 61) continue; // +
+        break;
+      }
+      var len = Math.floor(i / 4) * 3 + (i % 4) + 1;
+      var encodedLen = Math.floor(len * 6 / 8);
+      const bytes = new Uint8Array(encodedLen);
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+      const charMap = Array.from(chars).reduce((acc, char, index) => {
+        acc[char.charCodeAt(0)] = index;
+        return acc;
+      }, {});
+      var index = 0;
+      for (let i = 0, bc = 0, bs = 0; i < len; i++) {
+        if ((i % 4) == 3) continue;
+        bs = (bs << 6) | charMap[imageData[i]];
+        bc += 6;
+        if (bc >= 8) {
+          bc -= 8;
+          bytes[index++] = (bs >> bc) & 0xFF;
+        }
+      }
+      var decoded = CBOR.decode(bytes.buffer, typedArrayTagger);
+      callback(decoded);
     }
-    callback(JSON.parse(jsonData));
   };
   // Sends the image data to load.
   image.src = 'data:image/png;base64,' + data;
@@ -5940,7 +5974,7 @@ function decompressPng(data, callback) {
 
 module.exports = decompressPng;
 
-},{"canvas":47}],49:[function(require,module,exports){
+},{"../cborTypedArrayTags":44,"canvas":47,"cbor-js":1}],49:[function(require,module,exports){
 try {
     var work = require('webworkify');
 } catch(ReferenceError) {
