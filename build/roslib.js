@@ -5955,7 +5955,7 @@ function decompressPng(data, callback, type) {
         return acc;
       }, {});
       var index = 0;
-      for (let i = 0, bc = 0, bs = 0; i < len; i++) {
+      for (let i = 0, bc = 0, bs = 0; i < imageData.length; i++) {
         if ((i % 4) == 3) continue;
         bs = (bs << 6) | charMap[imageData[i]];
         bc += 6;
